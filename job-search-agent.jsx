@@ -1402,10 +1402,10 @@ function Sidebar({ active, setActive, pendingCount, keysSet, onSignOut }) {
   return (
     <div style={{ width: 228, flexShrink: 0, background: "#f8f9fa", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", padding: "22px 12px 20px", minHeight: "100vh" }}>
       {/* Logo */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 28 }}>
+      <button onClick={() => setActive("dashboard")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 28, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🎯</div>
         <span style={{ fontSize: 12, fontWeight: 700, color: "#7c3aed", letterSpacing: "0.14em", textTransform: "uppercase" }}>AutoApply</span>
-      </div>
+      </button>
 
       {/* Main nav */}
       <nav style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1 }}>
