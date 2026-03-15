@@ -382,6 +382,24 @@ const CSS = `
   .fade-up   { animation: fadeUp   0.4s ease both; }
   .slide-in  { animation: slideIn  0.3s ease both; }
   .slide-down{ animation: slideDown 0.25s ease both; }
+
+  /* ── Mobile ── */
+  @media (max-width: 640px) {
+    .sidebar      { display: none !important; }
+    .tab-content  { padding: 20px 16px 96px !important; }
+    .stats-grid   { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+    .dash-lower   { display: grid !important; grid-template-columns: 1fr !important; }
+    .landing-panels { grid-template-columns: 1fr !important; gap: 14px !important; }
+    .landing-info { grid-template-columns: 1fr !important; }
+    .confirm-btns { flex-direction: column !important; }
+    .confirm-btns button { flex: none !important; }
+    .card-action-btns { flex-direction: column !important; }
+    .card-action-btns > * { width: 100% !important; justify-content: center !important; text-align: center !important; }
+    .hero-title   { font-size: 32px !important; line-height: 1.2 !important; }
+    .hero-sub     { font-size: 15px !important; }
+    .run-agent-row { flex-direction: column !important; align-items: stretch !important; }
+    .run-agent-row > * { width: 100% !important; justify-content: center !important; }
+  }
 `;
 
 // ─── Shared styles ─────────────────────────────────────────────────────────────
@@ -478,6 +496,59 @@ function CompanyStatusBadge({ company, serpAvailable }) {
     }}>
       {source} {icon}
     </span>
+  );
+}
+
+// ─── Mobile detection ──────────────────────────────────────────────────────────
+function useIsMobile() {
+  const [mobile, setMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const fn = () => setMobile(window.innerWidth < 640);
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  return mobile;
+}
+
+// ─── Bottom navigation bar (mobile only) ───────────────────────────────────────
+function BottomNav({ active, setActive, pendingCount, keysSet }) {
+  const items = [
+    { id: "dashboard",    icon: "🏠", label: "Home"     },
+    { id: "review",       icon: "📋", label: "Jobs",    badge: pendingCount },
+    { id: "applications", icon: "📤", label: "Applied"  },
+    { id: "outreach",     icon: "💌", label: "Outreach" },
+    { id: "settings",     icon: "⚙️", label: "More"     },
+  ];
+  return (
+    <div style={{
+      position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 200,
+      background: "#ffffff", borderTop: "1px solid #e5e7eb",
+      display: "flex", alignItems: "stretch",
+      paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    }}>
+      {items.map(item => {
+        const on = active === item.id || (item.id === "settings" && ["settings", "apikeys"].includes(active));
+        return (
+          <button key={item.id} onClick={() => setActive(item.id)} style={{
+            flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", gap: 3, padding: "10px 4px 8px",
+            background: "none", border: "none", cursor: "pointer", fontFamily: "inherit",
+            color: on ? "#7c3aed" : "#9ca3af", position: "relative",
+            transition: "color 0.15s",
+          }}>
+            <span style={{ fontSize: 22 }}>{item.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: on ? 700 : 400, letterSpacing: "0.01em" }}>{item.label}</span>
+            {item.badge > 0 && (
+              <span style={{
+                position: "absolute", top: 7, left: "calc(50% + 4px)",
+                background: "#7c3aed", color: "#fff", borderRadius: 99,
+                fontSize: 9, fontWeight: 700, padding: "1px 5px", minWidth: 16, textAlign: "center",
+              }}>{item.badge}</span>
+            )}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -841,7 +912,7 @@ function JobCard({ job, onApprove, onReject, onMarkApplied, onGenerateEmail, onS
               </div>
 
               {/* Primary action buttons */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+              <div className="card-action-btns" style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
                 {isBigTech ? (
                   // Big tech: open application → then user marks applied
                   <>
@@ -1000,6 +1071,7 @@ function JobCard({ job, onApprove, onReject, onMarkApplied, onGenerateEmail, onS
 
 // ─── Landing Screen (new user experience) ─────────────────────────────────────
 function LandingScreen({ onComplete }) {
+  const isMobile = useIsMobile();
   const [screen, setScreen]           = useState(1);
   const [cv, setCv]                   = useState({ text: "", fileName: "", parsed: false });
   const [cvParsing, setCvParsing]     = useState(false);
@@ -1108,7 +1180,7 @@ function LandingScreen({ onComplete }) {
       <div style={{ minHeight: "100vh", background: "#ffffff", color: "#0a0a0a" }}>
         <style>{CSS}</style>
         <Nav />
-        <div className="fade-up" style={{ maxWidth: 680, margin: "0 auto", padding: "52px 32px 80px" }}>
+        <div className="fade-up" style={{ maxWidth: 680, margin: "0 auto", padding: isMobile ? "28px 16px 60px" : "52px 32px 80px" }}>
           <h1 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 34, fontWeight: 400, marginBottom: 8 }}>
             Here's what we found in your search
           </h1>
@@ -1149,7 +1221,7 @@ function LandingScreen({ onComplete }) {
             We'll check your target companies' job boards daily and bring you the best matches.
           </p>
 
-          <div style={{ display: "flex", gap: 12 }}>
+          <div className="confirm-btns" style={{ display: "flex", gap: 12 }}>
             <button onClick={() => setScreen(1)} style={{ ...ghostBtn, flex: 1, justifyContent: "center" }}>
               ← Edit Search
             </button>
@@ -1229,19 +1301,19 @@ function LandingScreen({ onComplete }) {
       <style>{CSS}</style>
       <Nav />
 
-      <div style={{ maxWidth: 980, margin: "0 auto", padding: "60px 40px 80px" }}>
+      <div style={{ maxWidth: 980, margin: "0 auto", padding: isMobile ? "32px 16px 60px" : "60px 40px 80px" }}>
         {/* Hero */}
         <div className="fade-up" style={{ textAlign: "center", marginBottom: 52 }}>
-          <h1 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 54, fontWeight: 400, lineHeight: 1.12, marginBottom: 16, color: "#0a0a0a" }}>
+          <h1 className="hero-title" style={{ fontFamily: "'DM Serif Display',serif", fontSize: 54, fontWeight: 400, lineHeight: 1.12, marginBottom: 16, color: "#0a0a0a" }}>
             Find your next role
           </h1>
-          <p style={{ fontSize: 18, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.65 }}>
+          <p className="hero-sub" style={{ fontSize: 18, color: "#64748b", maxWidth: 480, margin: "0 auto", lineHeight: 1.65 }}>
             Upload your CV and describe what you're looking for — we'll handle the rest
           </p>
         </div>
 
         {/* Two panels */}
-        <div className="fade-up" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 22 }}>
+        <div className="fade-up landing-panels" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 22 }}>
 
           {/* LEFT: CV Upload */}
           <div style={{ background: "#fafafa", border: "1px solid #e5e7eb", borderRadius: 18, padding: 28 }}>
@@ -1331,7 +1403,7 @@ function LandingScreen({ onComplete }) {
         </div>
 
         {/* Name + email row */}
-        <div className="fade-up" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
+        <div className="fade-up landing-info" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 28 }}>
           <div>
             <label style={label}>Your Name</label>
             <input style={field} type="text" placeholder="Jane Smith" value={name} onChange={e => setName(e.target.value)} />
@@ -1400,7 +1472,7 @@ function Sidebar({ active, setActive, pendingCount, keysSet, onSignOut }) {
   };
 
   return (
-    <div style={{ width: 228, flexShrink: 0, background: "#f8f9fa", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", padding: "22px 12px 20px", minHeight: "100vh" }}>
+    <div className="sidebar" style={{ width: 228, flexShrink: 0, background: "#f8f9fa", borderRight: "1px solid #e5e7eb", display: "flex", flexDirection: "column", padding: "22px 12px 20px", minHeight: "100vh" }}>
       {/* Logo */}
       <button onClick={() => setActive("dashboard")} style={{ display: "flex", alignItems: "center", gap: 10, padding: "0 8px", marginBottom: 28, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit" }}>
         <div style={{ width: 30, height: 30, borderRadius: 8, background: "linear-gradient(135deg,#7c3aed,#06b6d4)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🎯</div>
@@ -1452,7 +1524,7 @@ function DashboardTab({ profile, jobs, logs, running, onRun, rateLimitedUntil, d
   ];
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       {/* Greeting */}
       <div style={{ marginBottom: 36 }}>
         <div style={{ fontSize: 12, color: "#374151", fontWeight: 600, letterSpacing: "0.06em", marginBottom: 8 }}>
@@ -1475,7 +1547,7 @@ function DashboardTab({ profile, jobs, logs, running, onRun, rateLimitedUntil, d
       </div>
 
       {/* Run Agent */}
-      <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 36, flexWrap: "wrap" }}>
+      <div className="run-agent-row" style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 36, flexWrap: "wrap" }}>
         <button
           onClick={onRun}
           disabled={running || isRateLimited}
@@ -1532,12 +1604,12 @@ function DashboardTab({ profile, jobs, logs, running, onRun, rateLimitedUntil, d
       })()}
 
       {/* Stats */}
-      <div style={{ display: "flex", gap: 14, marginBottom: 36, flexWrap: "wrap" }}>
+      <div className="stats-grid" style={{ display: "flex", gap: 14, marginBottom: 36, flexWrap: "wrap" }}>
         {stats.map(s => <StatCard key={s.label} {...s} />)}
       </div>
 
       {/* Activity + Funnel */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
+      <div className="dash-lower" style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 24 }}>
         <div>
           <div style={{ ...label, marginBottom: 10 }}>Agent Activity</div>
           <LogPanel logs={logs} />
@@ -1595,7 +1667,7 @@ function ReviewJobsTab({ jobs, onApprove, onReject, onMarkApplied, onGenerateEma
   const reviewed    = displayJobs.filter(j => j.status !== "pending-review").sort(byScore);
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, fontWeight: 400, marginBottom: 6 }}>Review Jobs</h2>
       <p style={{ fontSize: 14, color: "#64748b", marginBottom: 20 }}>Approve roles you want the agent to apply to.</p>
 
@@ -1666,7 +1738,7 @@ function ReviewJobsTab({ jobs, onApprove, onReject, onMarkApplied, onGenerateEma
 function ApplicationsTab({ jobs }) {
   const sent = jobs.filter(j => ["applied","emailed"].includes(j.status));
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, fontWeight: 400, marginBottom: 6 }}>Applications</h2>
       <p style={{ fontSize: 14, color: "#64748b", marginBottom: 28 }}>All applications sent by the agent.</p>
       {sent.length === 0
@@ -1684,7 +1756,7 @@ function ApplicationsTab({ jobs }) {
 function OutreachTab({ jobs }) {
   const emailed = jobs.filter(j => j.status === "emailed");
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, fontWeight: 400, marginBottom: 6 }}>Outreach</h2>
       <p style={{ fontSize: 14, color: "#64748b", marginBottom: 28 }}>Hiring managers the agent has emailed on your behalf.</p>
       {emailed.length === 0
@@ -1746,7 +1818,7 @@ function SettingsTab({ profile, onUpdate, onReset, onRefreshCompanies }) {
   };
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, fontWeight: 400, marginBottom: 6 }}>Settings</h2>
       <p style={{ fontSize: 14, color: "#64748b", marginBottom: 32 }}>Update your profile, API key, and targeting.</p>
 
@@ -1898,7 +1970,7 @@ function ApiKeysTab({ profile, onUpdate }) {
   const serpOk      = !!profile.serpApiKey;
 
   return (
-    <div style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
+    <div className="tab-content" style={{ flex: 1, overflowY: "auto", padding: "38px 44px" }}>
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 30, fontWeight: 400, marginBottom: 6 }}>API Keys</h2>
       <p style={{ fontSize: 14, color: "#64748b", marginBottom: 28, lineHeight: 1.6 }}>
         Your keys are encrypted in your browser's localStorage — they never leave your device except when calling the respective APIs directly.
@@ -1975,6 +2047,7 @@ function ApiKeysTab({ profile, onUpdate }) {
 
 // ─── Root component ────────────────────────────────────────────────────────────
 export default function JobSearchAgent() {
+  const isMobile = useIsMobile();
   const [profile, setProfile]           = useState(null);
   const [activeTab, setActiveTab]       = useState("dashboard");
   const [jobs, setJobs]                 = useState([]);
@@ -2313,6 +2386,8 @@ export default function JobSearchAgent() {
         {activeTab === "settings"     && <SettingsTab profile={profile} onUpdate={setProfile} onReset={handleReset} onRefreshCompanies={runAgent} />}
       </div>
 
+      {isMobile && <BottomNav active={activeTab} setActive={setActiveTab} pendingCount={pendingCount} keysSet={keysSet} />}
+
       {/* Sign-out confirmation dialog */}
       {showSignOutDialog && (
         <div style={{
@@ -2320,7 +2395,7 @@ export default function JobSearchAgent() {
           display: "flex", alignItems: "center", justifyContent: "center",
         }} onClick={() => setShowSignOutDialog(false)}>
           <div style={{
-            background: "#fff", borderRadius: 14, padding: "28px 32px", width: 360,
+            background: "#fff", borderRadius: 14, padding: "28px 24px", width: "min(360px, calc(100vw - 32px))",
             boxShadow: "0 20px 60px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", gap: 20,
           }} onClick={e => e.stopPropagation()}>
             <div>
