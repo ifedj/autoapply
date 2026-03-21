@@ -1090,6 +1090,13 @@ function LandingScreen({ onComplete }) {
     "Senior PM consumer health — WHOOP, Oura, Maven Clinic, Boston or remote, $200k+",
   ];
 
+  const sanitizeCvText = (raw = "") =>
+    raw
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uFFFD\uFFFE\uFFFF]/g, " ") // strip control chars + replacement chars
+      .replace(/[\uD800-\uDFFF]/g, " ")   // strip lone surrogates (invalid in JSON)
+      .replace(/\s{3,}/g, "  ")
+      .trim();
+
   const handleFile = async file => {
     if (!file) return;
     setCvParsing(true);
@@ -1098,19 +1105,24 @@ function LandingScreen({ onComplete }) {
       if (ext.endsWith(".docx")) {
         const ab = await file.arrayBuffer();
         const { value } = await mammoth.extractRawText({ arrayBuffer: ab });
-        setCv({ text: value, fileName: file.name, parsed: true });
+        const cleaned = sanitizeCvText(value);
+        setCv({ text: cleaned, fileName: file.name, parsed: cleaned.length > 50 });
       } else if (ext.endsWith(".pdf")) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          const raw = e.target.result || "";
-          const cleaned = raw.replace(/[^\x20-\x7E\n\r\t]/g, " ").replace(/\s{3,}/g, "  ").trim();
-          setCv({ text: cleaned.length > 100 ? cleaned : "", fileName: file.name, parsed: cleaned.length > 100 });
-          setCvParsing(false);
-        };
-        reader.readAsText(file);
-        return;
+        const ab = await file.arrayBuffer();
+        // Use TextDecoder with fatal:false so invalid byte sequences are replaced, never thrown
+        const raw = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(ab);
+        const cleaned = sanitizeCvText(raw);
+        setCv({ text: cleaned.length > 100 ? cleaned : "", fileName: file.name, parsed: cleaned.length > 100 });
+      } else {
+        // Plain text fallback
+        const text = await file.text();
+        const cleaned = sanitizeCvText(text);
+        setCv({ text: cleaned, fileName: file.name, parsed: cleaned.length > 50 });
       }
-    } catch (e) { console.error("CV parse error:", e); }
+    } catch (e) {
+      console.error("CV parse error:", e);
+      setCv({ text: "", fileName: file.name, parsed: false, parseError: e.message });
+    }
     setCvParsing(false);
   };
 
@@ -1340,6 +1352,18 @@ function LandingScreen({ onComplete }) {
                 <div>
                   <div style={{ width: 24, height: 24, border: "2px solid #7c3aed30", borderTopColor: "#7c3aed", borderRadius: "50%", animation: "spin 0.7s linear infinite", margin: "0 auto 12px" }} />
                   <div style={{ color: "#7c3aed", fontSize: 13, fontWeight: 600 }}>Parsing your CV…</div>
+                </div>
+              ) : cv.fileName && cv.parseError ? (
+                <div>
+                  <div style={{ fontSize: 34, marginBottom: 10 }}>⚠️</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "#dc2626", marginBottom: 6 }}>Couldn't read this file</div>
+                  <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14 }}>Try saving as .docx and uploading again</div>
+                  <button
+                    onClick={e => { e.stopPropagation(); setCv({ text: "", fileName: "", parsed: false }); fileRef.current?.click(); }}
+                    style={{ ...ghostBtn, margin: "0 auto", fontSize: 11, padding: "5px 14px" }}
+                  >
+                    Try another file
+                  </button>
                 </div>
               ) : cv.fileName ? (
                 <div>
